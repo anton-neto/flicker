@@ -22,4 +22,12 @@ class FilmesViewModel(private val repository: FilmesRepository) : ViewModel() {
             }
         }
     }
+    suspend fun inserirFilme(filme: Filme) {
+        repository.inserirFilme(filme)
+    }
+
+    suspend fun obterTodosFilmes(): List<Filme> {
+        return repository.obterTodosFilmes()
+    }
+
 }
