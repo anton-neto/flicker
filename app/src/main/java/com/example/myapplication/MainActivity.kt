@@ -29,55 +29,62 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                FilmesScreen(modifier = Modifier.padding(innerPadding), viewModel = filmesViewModel)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Uso correto do estado com mutableStateOf
+                    val estadoFilmes = remember { mutableStateOf("") }
+
+                    // Campo de texto para pesquisar o filme
+                    TextField(
+                        value = estadoFilmes.value,  // Acesso ao valor
+                        onValueChange = { estadoFilmes.value = it },  // Atualiza o valor
+                        label = { Text("Digite o título do filme") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Botão para buscar o filme
+                    Button(onClick = {
+                        filmesViewModel.buscarFilme(estadoFilmes.value,
+                            onSuccess = { response ->
+                                // Aqui os dados do filme são retornados com sucesso
+                                println("Filme encontrado: ${response.Title}")
+                            },
+                            onError = { errorMessage ->
+                                // Lida com o erro, se ocorrer
+                                println("Erro: $errorMessage")
+                            }
+                        )
+                    }) {
+                        Text("Buscar Filme")
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Exibe os dados do filme ou mensagem de erro
+                    filmesViewModel.filme.value?.let {
+                        // Exibe as informações do filme
+                        Text("Título: ${it.Title}", style = MaterialTheme.typography.titleMedium)
+                        Text("Ano: ${it.Year}", style = MaterialTheme.typography.bodyMedium)
+                        Text("Gênero: ${it.Genre}", style = MaterialTheme.typography.bodyMedium)
+                        Text("IMDb: ${it.imdbRating}", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Sinopse: ${it.Plot}", style = MaterialTheme.typography.bodyMedium)
+                    }
+
+                    // Se houver um erro, exibe a mensagem de erro
+                    filmesViewModel.error.value?.let {
+                        Text("Erro: $it", color = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
     }
-}
-
-@Composable
-fun FilmesScreen(modifier: Modifier = Modifier, viewModel: FilmesViewModel) {
-    val estadoFilmes = remember { mutableStateOf("") }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        TextField(
-            value = estadoFilmes.value,
-            onValueChange = { estadoFilmes.value = it },
-            label = { Text("Digite o título do filme") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = {
-            viewModel.buscarFilme(estadoFilmes.value,
-                onSuccess = { response ->
-                    // Aqui você pode lidar com a resposta, por exemplo, armazenar no banco ou exibir
-                    println("Filme encontrado: ${response.Title}")
-                },
-                onError = { errorMessage ->
-                    // Aqui você pode lidar com o erro
-                    println("Erro: $errorMessage")
-                }
-            )
-        }) {
-            Text("Buscar Filme")
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewFilmesScreen() {
-    // Usar um ViewModel simulado ou vazio
-    val filmesRepository = FilmesRepository(AppDatabase.getDatabase(ApplicationProvider.getApplicationContext()).filmesDao())
-    val filmesViewModel = FilmesViewModel(filmesRepository)
-
-    FilmesScreen(viewModel = filmesViewModel)
 }
