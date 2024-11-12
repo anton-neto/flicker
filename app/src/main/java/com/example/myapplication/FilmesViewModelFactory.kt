@@ -8,6 +8,7 @@ class FilmesViewModelFactory(private val repository: FilmesRepository) : ViewMod
         if (modelClass.isAssignableFrom(FilmesViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return FilmesViewModel(repository) as T
+
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.media.Image
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,11 +11,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 
-
 class MainActivity : ComponentActivity() {
-    private lateinit var filmesViewModel: FilmesViewModel
+     lateinit var filmesViewModel: FilmesViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,9 +38,11 @@ class MainActivity : ComponentActivity() {
 fun CRUDScreen(viewModel: FilmesViewModel) {
     val scope = rememberCoroutineScope()
     val titulo = remember { mutableStateOf("") }
+    val busca = remember { mutableStateOf("") }
     val anoLancamento = remember { mutableStateOf("") }
     val status = remember { mutableStateOf("não assistido") }
-    val filmesList = remember { mutableStateListOf<Filme>() }
+    val filmesList = remember { mutableStateListOf<FilmeApiResponse>() }
+    val filmeId = remember { mutableStateOf("") } // New field for specifying movie ID to update/delete
 
     Column(
         modifier = Modifier
@@ -44,56 +51,80 @@ fun CRUDScreen(viewModel: FilmesViewModel) {
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Campos de texto para inserir os dados do filme
+        // Input for the movie ID
         TextField(
-            value = titulo.value,
-            onValueChange = { titulo.value = it },
-            label = { Text("Título") },
+            value = busca.value,
+            onValueChange = { busca.value = it },
+            label = { Text("ID do Filme") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextField(
-            value = anoLancamento.value,
-            onValueChange = { anoLancamento.value = it },
-            label = { Text("Ano de Lançamento") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Botão para adicionar filme
+        // Button to add a new movie
         Button(onClick = {
             scope.launch {
-                val novoFilme = Filme(titulo = titulo.value, anoLancamento = anoLancamento.value, status = status.value)
-                viewModel.inserirFilme(novoFilme)
-                atualizarListaFilmes(viewModel, filmesList)
-            }
-        }) {
-            Text("Adicionar Filme")
-        }
+                if(viewModel.buscarFilmeId(busca.value) != null) {
+                    val FilmeBusca: FilmeApiResponse? = viewModel.buscarFilmeId(busca.value)
+                    filmesList.clear()
+                    if (FilmeBusca != null) {
+                        if (FilmeBusca.Year != null) {
+                            val novoFilme = FilmeApiResponse(
+                                Title = FilmeBusca.Title,
+                                Year = FilmeBusca.Year,
+                                imdbID = FilmeBusca.imdbID,
+                                Type = FilmeBusca.Type,
+                                Poster = FilmeBusca.Poster,
+                            )
+                            filmesList.clear()
+                            filmesList.add(novoFilme)
+                        }else{
+                            filmesList.clear()
+                            val FilmeBusca2: SearchApiResponse? = viewModel.buscarFilmeTitulo(busca.value)
 
-        Spacer(modifier = Modifier.height(16.dp))
+                            if (FilmeBusca2 != null) {
+                                filmesList.addAll(FilmeBusca2.Search.map {
+                                    FilmeApiResponse(
+                                        Title = it.Title,
+                                        Year = it.Year,
+                                        imdbID = it.imdbID,
+                                        Type = it.Type,
+                                        Poster = it.Poster
+                                    )
+                                })
+                            } else {
+                                //
+                            }
 
-        // Botão para listar todos os filmes
-        Button(onClick = {
-            scope.launch {
-                atualizarListaFilmes(viewModel, filmesList)
+                        }
+                    }
+
+                    if(FilmeBusca == null){
+                        filmesList.clear()
+                    }
+                }
+
             }
-        }) {
+        }){
             Text("Listar Filmes")
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Exibe a lista de filmes
-        filmesList.forEach { filme ->
-            Text("ID: ${filme.id}, Título: ${filme.titulo}, Ano: ${filme.anoLancamento}, Status: ${filme.status}")
-        }
-    }
-}
+        Spacer(modifier = Modifier.height(16.dp))
 
-// Função auxiliar para atualizar a lista de filmes
-suspend fun atualizarListaFilmes(viewModel: FilmesViewModel, filmesList: MutableList<Filme>) {
-    filmesList.clear()
-    filmesList.addAll(viewModel.obterTodosFilmes())
+
+        if(filmesList.size == 0){
+            Text("Termo de busca incorreto!")
+        }else{
+            filmesList.forEach { filme ->
+                Text("ID: ${filme.imdbID}, Título: ${filme.Title}, Ano: ${filme.Year}")
+                Text(text = "${filmesList.size}")
+            }
+        }
+
+    }
 }

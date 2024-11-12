@@ -6,7 +6,12 @@
     interface OmdbApiService {
         @GET("/")
         suspend fun buscarFilme(
-            @Query("t") titulo: String,
+            @Query("i") id: String,
             @Query("apikey") apiKey: String = "3eb04ca2"
         ): FilmeApiResponse
+
+        suspend fun buscarFilmes(
+            @Query("s") titulo: String,
+           @Query("apikey") apiKey: String = "3eb04ca2"
+        ): SearchApiResponse
     }
